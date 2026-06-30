@@ -6,10 +6,6 @@ variable "location" {
   type = string
 }
 
-variable "tags" {
-  type = map(string)
-}
-
 variable "vnet_name" {
   type = string
 }
@@ -23,5 +19,9 @@ variable "public_subnets" {
 }
 
 variable "private_subnets" {
+  type = map(string)
+}
+
+variable "tags" {
   type = map(string)
 }
