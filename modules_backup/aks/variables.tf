@@ -5,13 +5,7 @@ variable "kubernetes_version" {}
 variable "resource_group_name" {}
 variable "location" {}
 
-variable "aks_subnet_id" {}
-
-variable "private_cluster_enabled" {
-  description = "If true, the AKS API server has no public endpoint at all"
-  type        = bool
-  default     = false
-}
+variable "private_subnet_id" {}
 
 variable "system_node_vm_size" {}
 variable "system_node_min_count" {}
@@ -22,15 +16,6 @@ variable "user_node_min_count" {}
 variable "user_node_max_count" {}
 
 variable "acr_id" {}
-
-variable "log_analytics_workspace_id" {
-  type = string
-}
-
-variable "nat_gateway_association_id" {
-  description = "The subnet <-> NAT Gateway association id. Passed in purely to force AKS to be created only after the subnet already has its NAT Gateway attached, otherwise outbound_type = userAssignedNATGateway fails."
-  type        = string
-}
 
 variable "tags" {
   type = map(string)

@@ -1,8 +1,4 @@
-variable "acr_name" {
-  type = string
-}
-
-variable "acr_sku" {
+variable "key_vault_name" {
   type = string
 }
 

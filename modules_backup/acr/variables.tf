@@ -14,12 +14,6 @@ variable "location" {
   type = string
 }
 
-variable "public_network_access_enabled" {
-  description = "Set to false once Private Endpoint access is validated end-to-end"
-  type        = bool
-  default     = false
-}
-
 variable "tags" {
   type = map(string)
 }

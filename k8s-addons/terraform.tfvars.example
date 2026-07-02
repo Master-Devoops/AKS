@@ -1,0 +1,19 @@
+resource_group_name = "Softradix-AKS-RG"
+aks_name             = "softradix-aks-cluster"
+
+letsencrypt_email = "you@example.com"
+
+app_hostname = "app.example.com"
+api_hostname = "api.example.com"
+
+# Use "staging" until you've confirmed HTTP-01 challenges + DNS work,
+# then switch to "production" and re-apply.
+letsencrypt_environment = "staging"
+
+app_image = "nginxdemos/hello:latest"
+
+tags = {
+  Environment = "Production"
+  Owner       = "Yogesh"
+  Project     = "Terraform"
+}

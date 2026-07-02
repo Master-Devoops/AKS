@@ -6,16 +6,22 @@ output "vnet_name" {
   value = azurerm_virtual_network.this.name
 }
 
-output "public_subnet_ids" {
-  value = {
-    for subnet in azurerm_subnet.public :
-    subnet.name => subnet.id
-  }
+output "aks_subnet_id" {
+  value = azurerm_subnet.aks_nodes.id
 }
 
-output "private_subnet_ids" {
-  value = {
-    for subnet in azurerm_subnet.private :
-    subnet.name => subnet.id
-  }
+output "aks_subnet_name" {
+  value = azurerm_subnet.aks_nodes.name
+}
+
+output "bastion_subnet_id" {
+  value = azurerm_subnet.bastion.id
+}
+
+output "private_endpoint_subnet_id" {
+  value = azurerm_subnet.private_endpoints.id
+}
+
+output "private_endpoint_subnet_name" {
+  value = azurerm_subnet.private_endpoints.name
 }
