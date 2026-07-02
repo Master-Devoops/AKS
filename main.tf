@@ -6,6 +6,20 @@ module "resource_group" {
   tags                 = var.tags
 }
 
+# -----------------------------------------------------------------------------
+# Brand-new Resource Groups aren't always immediately consistent across every
+# ARM read replica. Firing several independent modules at a freshly-created
+# RG in parallel (the default Terraform behaviour) can produce transient
+# "404 Not Found" / "provider produced inconsistent result" errors on the
+# very first apply. A short, one-time propagation delay avoids that without
+# permanently serializing every subsequent apply (the sleep is only ever
+# created once and then cached in state).
+# -----------------------------------------------------------------------------
+resource "time_sleep" "resource_group_propagation" {
+  depends_on      = [module.resource_group]
+  create_duration = "30s"
+}
+
 module "virtual_network" {
   source = "./modules/virtual-network"
 
@@ -20,7 +34,7 @@ module "virtual_network" {
   private_endpoint_subnet_address_prefix = var.private_endpoint_subnet_address_prefix
 
   tags       = var.tags
-  depends_on = [module.resource_group]
+  depends_on = [time_sleep.resource_group_propagation]
 }
 
 module "nat_gateway" {
@@ -32,6 +46,8 @@ module "nat_gateway" {
   aks_subnet_id        = module.virtual_network.aks_subnet_id
 
   tags = var.tags
+
+  depends_on = [module.virtual_network]
 }
 
 module "log_analytics" {
@@ -42,6 +58,8 @@ module "log_analytics" {
   location             = var.location
 
   tags = var.tags
+
+  depends_on = [time_sleep.resource_group_propagation]
 }
 
 module "bastion" {
@@ -54,6 +72,8 @@ module "bastion" {
   enable_bastion       = var.enable_bastion
 
   tags = var.tags
+
+  depends_on = [module.virtual_network]
 }
 
 module "key_vault" {
@@ -65,6 +85,8 @@ module "key_vault" {
   public_network_access_enabled  = var.key_vault_public_network_access_enabled
 
   tags = var.tags
+
+  depends_on = [time_sleep.resource_group_propagation]
 }
 
 module "acr" {
