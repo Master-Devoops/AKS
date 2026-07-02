@@ -53,6 +53,8 @@ module "aks" {
   user_node_min_count = var.user_node_min_count
   user_node_max_count = var.user_node_max_count
 
+  authorized_ip_ranges = var.authorized_ip_ranges
+
   acr_id = module.acr.acr_id
 
   tags = var.tags

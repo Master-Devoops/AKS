@@ -1,4 +1,5 @@
 resource "azurerm_kubernetes_cluster" "this" {
+
   name                = var.aks_name
   location            = var.location
   resource_group_name = var.resource_group_name
@@ -7,7 +8,8 @@ resource "azurerm_kubernetes_cluster" "this" {
 
   kubernetes_version = var.kubernetes_version
 
-  private_cluster_enabled = true
+  # Public API Server
+  private_cluster_enabled = false
 
   sku_tier = "Standard"
 
@@ -18,7 +20,12 @@ resource "azurerm_kubernetes_cluster" "this" {
     type = "SystemAssigned"
   }
 
+  api_server_access_profile {
+    authorized_ip_ranges = var.authorized_ip_ranges
+  }
+
   default_node_pool {
+
     name = "system"
 
     vm_size = var.system_node_vm_size
@@ -36,15 +43,18 @@ resource "azurerm_kubernetes_cluster" "this" {
 
     type = "VirtualMachineScaleSets"
 
-    # zones = ["1", "2", "3"]
+    # zones = ["1","2","3"]
   }
 
   network_profile {
+
     network_plugin      = "azure"
     network_plugin_mode = "overlay"
 
-    pod_cidr       = "192.168.0.0/16"
-    service_cidr   = "172.16.0.0/16"
+    pod_cidr = "192.168.0.0/16"
+
+    service_cidr = "172.16.0.0/16"
+
     dns_service_ip = "172.16.0.10"
 
     outbound_type = "loadBalancer"

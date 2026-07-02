@@ -40,3 +40,5 @@ system_node_max_count = 1
 user_node_vm_size   = "Standard_D2s_v7"
 user_node_min_count = 1
 user_node_max_count = 1
+
+authorized_ip_ranges = ["61.247.230.182/32"]

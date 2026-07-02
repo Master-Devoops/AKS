@@ -69,3 +69,8 @@ variable "user_node_min_count" {
 variable "user_node_max_count" {
   type = string
 }
+
+variable "authorized_ip_ranges" {
+  description = "Public IPs allowed to access the AKS API Server"
+  type        = list(string)
+}

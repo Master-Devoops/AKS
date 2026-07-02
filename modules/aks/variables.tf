@@ -20,3 +20,7 @@ variable "acr_id" {}
 variable "tags" {
   type = map(string)
 }
+variable "authorized_ip_ranges" {
+  description = "Authorized IPs for Kubernetes API Server"
+  type        = list(string)
+}
