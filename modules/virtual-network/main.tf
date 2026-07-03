@@ -29,6 +29,12 @@ resource "azurerm_subnet" "aks_nodes" {
 # AzureBastionSubnet
 # Name is fixed by Azure - Bastion will not deploy into a subnet with any
 # other name. Minimum size is /26.
+#
+# NOTE: explicit depends_on below is intentional. Azure holds an implicit
+# lock on the parent VNet while writing a subnet; creating multiple subnets
+# on a freshly-created VNet in parallel (Terraform's default behaviour)
+# routinely produces transient "404 Not Found" / "AnotherOperationInProgress"
+# errors from ARM. Chaining the subnets forces them to be created serially.
 # -----------------------------------------------------------------------------
 resource "azurerm_subnet" "bastion" {
   name                 = "AzureBastionSubnet"
@@ -36,6 +42,8 @@ resource "azurerm_subnet" "bastion" {
   virtual_network_name = azurerm_virtual_network.this.name
 
   address_prefixes = [var.bastion_subnet_address_prefix]
+
+  depends_on = [azurerm_subnet.aks_nodes]
 }
 
 # -----------------------------------------------------------------------------
@@ -51,6 +59,8 @@ resource "azurerm_subnet" "private_endpoints" {
   address_prefixes = [var.private_endpoint_subnet_address_prefix]
 
   private_endpoint_network_policies = "Disabled"
+
+  depends_on = [azurerm_subnet.bastion]
 }
 
 # -----------------------------------------------------------------------------

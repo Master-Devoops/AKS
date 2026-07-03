@@ -2,8 +2,8 @@ module "resource_group" {
   source = "./modules/resource-group"
 
   resource_group_name = var.resource_group_name
-  location            = var.location
-  tags                = var.tags
+  location             = var.location
+  tags                 = var.tags
 }
 
 # -----------------------------------------------------------------------------
@@ -24,7 +24,7 @@ module "virtual_network" {
   source = "./modules/virtual-network"
 
   resource_group_name = module.resource_group.resource_group_name
-  location            = var.location
+  location             = var.location
 
   vnet_name          = var.vnet_name
   vnet_address_space = var.vnet_address_space
@@ -40,10 +40,10 @@ module "virtual_network" {
 module "nat_gateway" {
   source = "./modules/nat-gateway"
 
-  nat_gateway_name    = var.nat_gateway_name
-  resource_group_name = module.resource_group.resource_group_name
-  location            = var.location
-  aks_subnet_id       = module.virtual_network.aks_subnet_id
+  nat_gateway_name     = var.nat_gateway_name
+  resource_group_name  = module.resource_group.resource_group_name
+  location             = var.location
+  aks_subnet_id        = module.virtual_network.aks_subnet_id
 
   tags = var.tags
 
@@ -53,9 +53,9 @@ module "nat_gateway" {
 module "log_analytics" {
   source = "./modules/log-analytics"
 
-  workspace_name      = var.log_analytics_workspace_name
-  resource_group_name = module.resource_group.resource_group_name
-  location            = var.location
+  workspace_name       = var.log_analytics_workspace_name
+  resource_group_name  = module.resource_group.resource_group_name
+  location             = var.location
 
   tags = var.tags
 
@@ -65,11 +65,11 @@ module "log_analytics" {
 module "bastion" {
   source = "./modules/bastion"
 
-  bastion_name        = var.bastion_name
-  resource_group_name = module.resource_group.resource_group_name
-  location            = var.location
-  bastion_subnet_id   = module.virtual_network.bastion_subnet_id
-  enable_bastion      = var.enable_bastion
+  bastion_name         = var.bastion_name
+  resource_group_name  = module.resource_group.resource_group_name
+  location             = var.location
+  bastion_subnet_id    = module.virtual_network.bastion_subnet_id
+  enable_bastion       = var.enable_bastion
 
   tags = var.tags
 
@@ -79,10 +79,10 @@ module "bastion" {
 module "key_vault" {
   source = "./modules/key-vault"
 
-  key_vault_name                = var.key_vault_name
-  resource_group_name           = module.resource_group.resource_group_name
-  location                      = var.location
-  public_network_access_enabled = var.key_vault_public_network_access_enabled
+  key_vault_name                 = var.key_vault_name
+  resource_group_name            = module.resource_group.resource_group_name
+  location                       = var.location
+  public_network_access_enabled  = var.key_vault_public_network_access_enabled
 
   tags = var.tags
 
@@ -92,13 +92,13 @@ module "key_vault" {
 module "acr" {
   source = "./modules/acr"
 
-  acr_name                      = var.acr_name
-  acr_sku                       = var.acr_sku
-  resource_group_name           = module.resource_group.resource_group_name
-  location                      = var.location
-  public_network_access_enabled = var.acr_public_network_access_enabled
-  tags                          = var.tags
-  depends_on                    = [module.virtual_network]
+  acr_name                       = var.acr_name
+  acr_sku                        = var.acr_sku
+  resource_group_name            = module.resource_group.resource_group_name
+  location                       = var.location
+  public_network_access_enabled  = var.acr_public_network_access_enabled
+  tags                            = var.tags
+  depends_on                      = [module.virtual_network]
 }
 
 # -----------------------------------------------------------------------------
@@ -110,20 +110,20 @@ module "private_endpoints" {
   source = "./modules/private-endpoints"
 
   resource_group_name = module.resource_group.resource_group_name
-  location            = var.location
-  vnet_id             = module.virtual_network.vnet_id
-  subnet_id           = module.virtual_network.private_endpoint_subnet_id
+  location             = var.location
+  vnet_id              = module.virtual_network.vnet_id
+  subnet_id            = module.virtual_network.private_endpoint_subnet_id
 
   endpoints = {
     acr = {
-      resource_id           = module.acr.acr_id
-      subresource_name      = "registry"
-      private_dns_zone_name = "privatelink.azurecr.io"
+      resource_id            = module.acr.acr_id
+      subresource_name       = "registry"
+      private_dns_zone_name  = "privatelink.azurecr.io"
     }
     key_vault = {
-      resource_id           = module.key_vault.key_vault_id
-      subresource_name      = "vault"
-      private_dns_zone_name = "privatelink.vaultcore.azure.net"
+      resource_id            = module.key_vault.key_vault_id
+      subresource_name       = "vault"
+      private_dns_zone_name  = "privatelink.vaultcore.azure.net"
     }
   }
 
@@ -138,10 +138,10 @@ module "aks" {
   kubernetes_version = var.kubernetes_version
 
   resource_group_name = module.resource_group.resource_group_name
-  location            = var.location
+  location             = var.location
 
-  aks_subnet_id           = module.virtual_network.aks_subnet_id
-  private_cluster_enabled = var.private_cluster_enabled
+  aks_subnet_id            = module.virtual_network.aks_subnet_id
+  private_cluster_enabled  = var.private_cluster_enabled
 
   system_node_vm_size   = var.system_node_vm_size
   system_node_min_count = var.system_node_min_count
@@ -151,14 +151,21 @@ module "aks" {
   user_node_min_count = var.user_node_min_count
   user_node_max_count = var.user_node_max_count
 
+  # With outbound_type = "userAssignedNATGateway", AKS does NOT
+  # automatically allow the cluster's own egress IP through
+  # authorized_ip_ranges (it only does that automatically for the
+  # Standard Load Balancer outbound type). Without this, nodes cannot
+  # reach the API server during bootstrap/CSE and cluster creation fails
+  # with VMExtensionError_K8SAPIServerConnFail. See:
+  # https://learn.microsoft.com/azure/aks/api-server-authorized-ip-ranges
   authorized_ip_ranges = concat(
     var.authorized_ip_ranges,
     ["${module.nat_gateway.public_ip_address}/32"]
   )
 
-  acr_id                     = module.acr.acr_id
-  log_analytics_workspace_id = module.log_analytics.workspace_id
-  nat_gateway_association_id = module.nat_gateway.nat_gateway_id
+  acr_id                      = module.acr.acr_id
+  log_analytics_workspace_id  = module.log_analytics.workspace_id
+  nat_gateway_association_id  = module.nat_gateway.nat_gateway_id
 
   tags = var.tags
 

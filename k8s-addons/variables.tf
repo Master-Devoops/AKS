@@ -38,6 +38,22 @@ variable "api_hostname" {
   type        = string
 }
 
+variable "nginx_hostname" {
+  description = "Public hostname for the simple standalone NGINX app"
+  type        = string
+  default     = "softradix-aks.devoops.in"
+}
+
+variable "ingress_dns_label" {
+  description = <<EOT
+DNS label for the Ingress Public IP, must be globally unique within its
+Azure region. Produces an FQDN of the form
+<label>.<region>.cloudapp.azure.com - use this as your CNAME target.
+EOT
+  type    = string
+  default = "softradix-aks"
+}
+
 variable "app_image" {
   description = "Container image for the sample web app"
   type        = string

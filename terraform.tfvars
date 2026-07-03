@@ -1,5 +1,5 @@
 resource_group_name = "Softradix-AKS-RG"
-location            = "East US 2"
+location             = "East US 2"
 
 tags = {
   Environment = "Production"
@@ -36,9 +36,9 @@ key_vault_public_network_access_enabled = false
 # ---------------------------------------------------------------------------
 # ACR
 # ---------------------------------------------------------------------------
-acr_name                          = "softradixaksacr"
-acr_sku                           = "Premium"
-acr_public_network_access_enabled = false
+acr_name                           = "softradixaksacr"
+acr_sku                            = "Premium"
+acr_public_network_access_enabled  = false
 
 # ---------------------------------------------------------------------------
 # AKS
@@ -46,17 +46,17 @@ acr_public_network_access_enabled = false
 aks_name   = "softradix-aks-cluster"
 dns_prefix = "softradix-aks"
 
-kubernetes_version = "1.36.1"
+kubernetes_version = "1.30.3"
 
 private_cluster_enabled = false
 
-system_node_vm_size   = "Standard_D2s_v7"
+system_node_vm_size   = "Standard_D2s_v5"
 system_node_min_count = 1
-system_node_max_count = 1
+system_node_max_count = 3
 
-user_node_vm_size   = "Standard_D2s_v7"
+user_node_vm_size   = "Standard_D2s_v5"
 user_node_min_count = 1
-user_node_max_count = 1
+user_node_max_count = 5
 
 # Replace with YOUR public IP(s) - this is the only place allowed to reach
 # the AKS API server. Find yours with `curl ifconfig.me`.

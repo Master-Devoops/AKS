@@ -264,18 +264,38 @@ flowchart LR
     subgraph YourDNS[Your DNS provider]
         A1["app.example.com  A record"]
         A2["api.example.com  A record"]
+        A3["softradix-aks.devoops.in  CNAME"]
     end
 
-    A1 & A2 -->|point to| PIP[Ingress Static Public IP<br/>output: ingress_public_ip]
+    A1 & A2 -->|point to IP| PIP[Ingress Static Public IP<br/>output: ingress_public_ip]
+    A3 -->|point to hostname| FQDN[Azure FQDN<br/>output: ingress_fqdn]
+    FQDN -.resolves to.-> PIP
     PIP --> NGX[NGINX Ingress Controller]
     NGX -->|host: app.example.com| WEBSVC[web Service]
     NGX -->|host: api.example.com| APISVC[api Service]
+    NGX -->|host: softradix-aks.devoops.in| NGINXSVC[nginx-simple Service]
 ```
 
-After `terraform apply` in `k8s-addons/`, read the `ingress_public_ip`
-output and create two `A` records at your DNS provider pointing
-`app.example.com` and `api.example.com` at that IP. The Ingress resource
-in `k8s-addons/main.tf` already routes by hostname.
+Two ways to point DNS at the cluster, both already supported:
+
+- **A record → raw IP.** Simple, works, but if the IP is ever
+  deleted/recreated you must update DNS by hand.
+- **CNAME → Azure FQDN (recommended for subdomains).** The Ingress Public
+  IP has `domain_name_label = var.ingress_dns_label` set, which gives
+  Azure a stable hostname of the form
+  `<label>.<region>.cloudapp.azure.com` (e.g.
+  `softradix-aks.eastus2.cloudapp.azure.com`). Read it after apply:
+  ```bash
+  terraform output ingress_fqdn
+  ```
+  Then, at your DNS provider (for `softradix-aks.devoops.in`), create:
+  ```
+  Type:  CNAME
+  Name:  softradix-aks
+  Value: <ingress_fqdn output>
+  ```
+  Most DNS providers don't allow a CNAME on a bare/apex domain — this
+  works because `softradix-aks.devoops.in` is a subdomain of `devoops.in`.
 
 ---
 
@@ -321,7 +341,7 @@ working end-to-end, switch to `"production"` and re-apply.
 | `private-endpoints` | Generic, reusable module — pass it a map of `{resource_id, subresource_name, private_dns_zone_name}` and it creates the Private Endpoint, Private DNS Zone, and VNet Link for each. Used for ACR and Key Vault; add Storage the same way. |
 | `acr` | Premium SKU, admin disabled, `public_network_access_enabled` togglable (defaults to `false`), `network_rule_set { default_action = "Deny" }`. |
 | `aks` | Azure CNI Overlay, OIDC + Workload Identity enabled, `authorized_ip_ranges` on the API server, system pool (`only_critical_addons_enabled`) + user pool (application workloads), `outbound_type = "userAssignedNATGateway"`, Key Vault CSI secrets provider, `oms_agent` wired to Log Analytics. |
-| `k8s-addons` (separate root module) | NGINX Ingress + static public IP, cert-manager + staging/production `ClusterIssuer`s, sample `web`/`api` Deployments+Services, hostname-based Ingress. See §11 for why this is separate. |
+| `k8s-addons` (separate root module) | NGINX Ingress + static public IP (with DNS label for CNAME use), cert-manager + staging/production `ClusterIssuer`s, sample `web`/`api` Deployments+Services, a standalone `nginx-simple` app on `softradix-aks.devoops.in`, hostname-based Ingress for all three. See §11 for why this is separate. |
 
 ---
 
