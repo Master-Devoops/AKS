@@ -241,6 +241,15 @@ Key points:
   your listed IPs (or through a jump host inside the VNet reachable via
   Bastion). Set `private_cluster_enabled = true` in `terraform.tfvars` if
   you want the API server to have **no** public endpoint at all.
+- **The NAT Gateway's public IP is automatically appended to
+  `authorized_ip_ranges`** (see root `main.tf`). This is required, not
+  optional: nodes reach the API server through the same NAT Gateway used
+  for all other egress, so the API server sees connections from the NAT
+  Gateway's IP, not the node's private IP. AKS only auto-allows this for
+  the *Standard Load Balancer* outbound type — with a bring-your-own NAT
+  Gateway (`userAssignedNATGateway`) it is not automatic, and omitting it
+  causes cluster creation to fail with `VMExtensionError_K8SAPIServerConnFail`
+  because nodes can never register with the control plane.
 - Nodes use `vnet_subnet_id` pointed at the private AKS node subnet only —
   there is no code path that gives a node a public IP.
 - `AcrPull` is granted automatically via `azurerm_role_assignment` in the
@@ -397,7 +406,57 @@ Once confirmed, switch `letsencrypt_environment = "production"` in
 
 ---
 
-## 13. Best practices already applied
+## 13. Troubleshooting (issues actually hit during first deployment)
+
+These are documented here because they happened during the real first
+`apply` of this configuration — they're not hypothetical.
+
+**"Provider produced inconsistent result" / random 404 "Not Found" on a
+brand-new Resource Group.** Azure Resource Manager isn't always
+immediately consistent across read replicas right after a Resource Group
+is created. Firing multiple independent modules at it in parallel (the
+Terraform default) can trip this. Fixed by inserting a one-time
+`time_sleep.resource_group_propagation` (30s) that `virtual_network`,
+`log_analytics`, and `key_vault` all depend on before touching the RG.
+
+**Same error, but for `AzureBastionSubnet`, during VNet creation.** Azure
+holds an implicit lock on a VNet while writing a subnet to it; creating
+several subnets on a *brand-new* VNet in parallel routinely produces the
+same transient 404s. Fixed by chaining subnet creation with explicit
+`depends_on` in `modules/virtual-network/main.tf` (`aks_nodes` →
+`bastion` → `private_endpoints`) so they're created one at a time instead
+of concurrently.
+
+**`enable_rbac_authorization` deprecation warning.** Renamed to
+`rbac_authorization_enabled` in `azurerm` provider 4.x; the old name is
+removed entirely in v5. Already fixed in `modules/key-vault/main.tf`.
+
+**Cluster creation fails with `VMExtensionError_K8SAPIServerConnFail`
+("Node ... could not reach API server ... Connection timed out").** This
+is the one worth understanding, not just patching: with
+`outbound_type = "userAssignedNATGateway"`, every node's traffic —
+including nodes registering with the API server during bootstrap — is
+SNAT'd through the NAT Gateway's public IP. Azure automatically
+allow-lists the cluster's egress IP in `authorized_ip_ranges` **only**
+when the outbound type is the Standard Load Balancer; it does **not** do
+this automatically for a bring-your-own NAT Gateway. Without an explicit
+fix, the nodes are blocked from ever reaching the control plane they're
+supposed to join. Fixed in root `main.tf` by appending the NAT Gateway's
+public IP to the list before it's passed into the `aks` module:
+```hcl
+authorized_ip_ranges = concat(
+  var.authorized_ip_ranges,
+  ["${module.nat_gateway.public_ip_address}/32"]
+)
+```
+If you ever change `authorized_ip_ranges` manually outside this pattern
+(e.g. via `az aks update`), remember: allow-list changes can take up to
+two minutes to propagate — don't assume a fix is broken if it fails
+immediately after applying, retry after a short wait.
+
+---
+
+## 14. Best practices already applied
 
 - No hardcoded values — everything flows through `variables` / `locals` /
   `terraform.tfvars`.
@@ -415,7 +474,7 @@ Once confirmed, switch `letsencrypt_environment = "production"` in
 - Autoscaling on both node pools (system 1-3, user 1-5) instead of fixed
   node counts.
 
-## 14. Production recommendations (not yet automated — call these out to your team)
+## 15. Production recommendations (not yet automated — call these out to your team)
 
 > **Remote state backend.** Add a `backend "azurerm" {}` block to
 > `versions.tf` pointing at a Storage Account with versioning + soft
