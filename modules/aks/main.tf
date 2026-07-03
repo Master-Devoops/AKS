@@ -69,7 +69,7 @@ resource "azurerm_kubernetes_cluster" "this" {
     # (modules/nat-gateway). Nodes get no public IPs; the standard Load
     # Balancer created below is used only for INBOUND application traffic
     # via the NGINX ingress controller's Service, never for egress.
-    outbound_type = "userAssignedNATGateway"
+    outbound_type = "loadBalancer"
   }
 
   key_vault_secrets_provider {

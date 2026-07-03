@@ -52,11 +52,11 @@ private_cluster_enabled = false
 
 system_node_vm_size   = "Standard_D2s_v7"
 system_node_min_count = 1
-system_node_max_count = 3
+system_node_max_count = 1
 
 user_node_vm_size   = "Standard_D2s_v7"
 user_node_min_count = 1
-user_node_max_count = 5
+user_node_max_count = 1
 
 # Replace with YOUR public IP(s) - this is the only place allowed to reach
 # the AKS API server. Find yours with `curl ifconfig.me`.
